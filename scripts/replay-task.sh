@@ -13,8 +13,6 @@
 #   HICLAW_ADMIN_USER          Admin username       (default: admin)
 #   HICLAW_ADMIN_PASSWORD      Admin password       (required)
 #   HICLAW_MATRIX_DOMAIN       Matrix domain        (default: matrix-local.hiclaw.io:8080)
-#   REPLAY_MATRIX_HOST         Matrix direct host   (default: 127.0.0.1)
-#   REPLAY_MATRIX_PORT         Matrix direct port   (default: 6167)
 #   REPLAY_WAIT                Wait for reply        (default: 1, set 0 to skip)
 #   REPLAY_TIMEOUT             Reply timeout secs    (default: 300)
 #   REPLAY_READY_TIMEOUT       Manager readiness timeout (default: 300)
@@ -48,10 +46,8 @@ fi
 # Configuration with defaults
 ADMIN_USER="${HICLAW_ADMIN_USER:-admin}"
 ADMIN_PASSWORD="${HICLAW_ADMIN_PASSWORD:-}"
-MATRIX_DOMAIN="${HICLAW_MATRIX_DOMAIN:-matrix-local.hiclaw.io:8080}"
-MATRIX_HOST="${REPLAY_MATRIX_HOST:-127.0.0.1}"
-MATRIX_PORT="${REPLAY_MATRIX_PORT:-6167}"
-MATRIX_URL="http://${MATRIX_HOST}:${MATRIX_PORT}"
+MATRIX_DOMAIN="${HICLAW_MATRIX_DOMAIN:-matrix-local.hiclaw.io:${HICLAW_PORT_GATEWAY:-8080}}"
+MATRIX_URL="http://${MATRIX_DOMAIN}"
 WAIT_FOR_REPLY="${REPLAY_WAIT:-1}"
 REPLY_TIMEOUT="${REPLAY_TIMEOUT:-300}"
 MANAGER_USER="manager"

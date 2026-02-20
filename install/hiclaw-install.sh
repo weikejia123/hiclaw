@@ -167,9 +167,16 @@ install_manager() {
 
     log ""
 
+    # Port Configuration (must come before Domain so MATRIX_DOMAIN default uses the correct port)
+    log "--- Port Configuration (press Enter for defaults) ---"
+    prompt HICLAW_PORT_GATEWAY "Host port for gateway (8080 inside container)" "8080"
+    prompt HICLAW_PORT_CONSOLE "Host port for Higress console (8001 inside container)" "8001"
+
+    log ""
+
     # Domain Configuration
     log "--- Domain Configuration (press Enter for defaults) ---"
-    prompt HICLAW_MATRIX_DOMAIN "Matrix Domain" "matrix-local.hiclaw.io:8080"
+    prompt HICLAW_MATRIX_DOMAIN "Matrix Domain" "matrix-local.hiclaw.io:${HICLAW_PORT_GATEWAY}"
     prompt HICLAW_MATRIX_CLIENT_DOMAIN "Element Web Domain" "matrix-client-local.hiclaw.io"
     prompt HICLAW_AI_GATEWAY_DOMAIN "AI Gateway Domain" "llm-local.hiclaw.io"
     prompt HICLAW_FS_DOMAIN "File System Domain" "fs-local.hiclaw.io"
@@ -179,13 +186,6 @@ install_manager() {
     # Optional: GitHub PAT
     log "--- GitHub Integration (optional, press Enter to skip) ---"
     prompt_optional HICLAW_GITHUB_TOKEN "GitHub Personal Access Token (optional)" "true"
-
-    log ""
-
-    # Port Configuration
-    log "--- Port Configuration (press Enter for defaults) ---"
-    prompt HICLAW_PORT_GATEWAY "Host port for gateway (8080 inside container)" "8080"
-    prompt HICLAW_PORT_CONSOLE "Host port for Higress console (8001 inside container)" "8001"
 
     log ""
 
