@@ -4,6 +4,8 @@ Record image-affecting changes to `manager/`, `worker/`, `openclaw-base/` here b
 
 ---
 
+本次更新主要包含四个方向：新增 model-switch、task-management 两个 skill 及 Manager/Worker TOOLS.md 快速参考手册，强化 Agent 工具使用规范；修复 `builtin-merge.sh` 多处 shell 陷阱（空内容 exit 1、写文件失败静默），确保启动失败可见；修复 Podman 兼容性、Tuwunel 就绪竞态、worker DM 权限等容器稳定性问题；Release workflow 改为开 PR 并支持手动输入版本号触发。
+
 - feat(manager): add model-switch skill with `update-manager-model.sh` script for runtime model switching ([00cbaa5](https://github.com/higress-group/hiclaw/commit/00cbaa5))
 - feat(manager): add task-management skill (extracted from AGENTS.md) covering task workflow and state file spec ([00cbaa5](https://github.com/higress-group/hiclaw/commit/00cbaa5))
 - feat(manager): add `manager/scripts/lib/builtin-merge.sh` — shared library for idempotent builtin section merging ([00cbaa5](https://github.com/higress-group/hiclaw/commit/00cbaa5))
