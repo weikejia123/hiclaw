@@ -1742,7 +1742,7 @@ function Install-Manager {
     $dockerArgs += @("-p", "${portPrefix}$($config.PORT_GATEWAY):8080")
     $dockerArgs += @("-p", "${portPrefix}$($config.PORT_CONSOLE):8001")
     $dockerArgs += @("-p", "${portPrefix}$($config.PORT_ELEMENT_WEB):8088")
-    $dockerArgs += @("-p", "${portPrefix}$($config.PORT_OPENCLAW_CONSOLE):18888")
+    $dockerArgs += @("-p", "127.0.0.1:$($config.PORT_OPENCLAW_CONSOLE):18888")
 
     # Data mount: Docker volume
     $dockerArgs += @("-v", "$($config.DATA_DIR):/data")
