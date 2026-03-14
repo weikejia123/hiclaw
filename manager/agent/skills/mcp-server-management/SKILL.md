@@ -67,10 +67,9 @@ The script determines the API domain in this order:
 
 1. Determines the API domain (`--api-domain` flag or auto-extracted from YAML) and registers a DNS service source
 2. Reads the YAML config, substitutes `accessToken: ""` with the real credential
-3. Creates/updates the MCP Server via `PUT /v1/mcpServer` (upsert)
-4. Authorizes Manager consumer
-5. Reads `~/workers-registry.json` and authorizes all existing Workers
-6. Updates each Worker's `mcporter-servers.json` with the new MCP endpoint
+3. Creates/updates the MCP Server via `PUT /v1/mcpServer` (upsert) and authorizes Manager consumer
+4. Updates Manager's own `mcporter-servers.json` (creates if not exists)
+5. Reads `~/workers-registry.json`, authorizes all existing Workers, and updates/creates each Worker's `mcporter-servers.json`
 
 The script is fully idempotent — safe to re-run for credential rotation or updates.
 
@@ -233,9 +232,14 @@ bash /opt/hiclaw/agent/skills/mcp-server-management/scripts/setup-mcp-server.sh 
 
 ### After Running
 
-- Confirm to the user that the MCP server is configured
-- Auth plugin needs ~10s to activate after creation/update
-- Workers pick up new `mcporter-servers.json` on next file sync; restart Worker for immediate access
+1. Wait ~10s for the auth plugin to activate
+2. Confirm to the user that the MCP server is configured
+3. @mention each existing Worker in their Room to notify them about the new MCP tools:
+   ```
+   @{worker}:{domain} New MCP server `{mcp-server-name}` has been configured with tools: {tool list from YAML}.
+   Please use your file-sync skill to pull the updated mcporter-servers.json, then you can call these tools via `mcporter`.
+   ```
+   The tool list should be extracted from the YAML config's `tools[].name` fields so the Worker knows what's available.
 
 ### Security
 

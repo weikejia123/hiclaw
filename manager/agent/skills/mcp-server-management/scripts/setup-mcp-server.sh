@@ -5,8 +5,8 @@
 #   1. DNS service source registration (auto-extracted from YAML or explicit)
 #   2. YAML credential substitution (unified key: accessToken)
 #   3. MCP Server creation/update via PUT (upsert)
-#   4. Manager + existing Worker consumer authorization
-#   5. Worker mcporter-servers.json updates
+#   4. Manager mcporter-servers.json update
+#   5. Worker consumer authorization + mcporter-servers.json update/creation
 #
 # Usage:
 #   bash setup-mcp-server.sh <server-name> <credential-value> [--yaml-file <path>] [--api-domain <domain>]
@@ -277,13 +277,41 @@ else
 fi
 
 # ============================================================
-# Step 4: Authorize existing Workers and update their configs
+# Step 4: Update Manager's own mcporter-servers.json
 # ============================================================
-log "Step 4: Authorizing existing Workers for ${MCP_SERVER_NAME}..."
+log "Step 4: Updating Manager mcporter-servers.json..."
+MANAGER_KEY="${HICLAW_MANAGER_GATEWAY_KEY:-}"
+MANAGER_MCPORTER="${HOME}/mcporter-servers.json"
+if [ -n "${MANAGER_KEY}" ]; then
+    if [ -f "${MANAGER_MCPORTER}" ]; then
+        UPDATED=$(jq --arg name "${MCP_SERVER_NAME}" --arg domain "${AI_GATEWAY_DOMAIN}" --arg key "${MANAGER_KEY}" \
+            '.mcpServers[$name] = {
+                url: ("http://" + $domain + ":8080/mcp-servers/" + $name + "/mcp"),
+                transport: "http",
+                headers: {Authorization: ("Bearer " + $key)}
+            }' "${MANAGER_MCPORTER}" 2>/dev/null)
+        echo "${UPDATED}" | jq . > "${MANAGER_MCPORTER}"
+    else
+        jq -n --arg name "${MCP_SERVER_NAME}" --arg domain "${AI_GATEWAY_DOMAIN}" --arg key "${MANAGER_KEY}" \
+            '{mcpServers: {($name): {
+                url: ("http://" + $domain + ":8080/mcp-servers/" + $name + "/mcp"),
+                transport: "http",
+                headers: {Authorization: ("Bearer " + $key)}
+            }}}' > "${MANAGER_MCPORTER}"
+    fi
+    log "  Manager mcporter-servers.json updated"
+else
+    log "  WARNING: HICLAW_MANAGER_GATEWAY_KEY not set, skipping Manager mcporter update"
+fi
+
+# ============================================================
+# Step 5: Authorize existing Workers and update their configs
+# ============================================================
+log "Step 5: Authorizing existing Workers for ${MCP_SERVER_NAME}..."
 REGISTRY_FILE="${HOME}/workers-registry.json"
 if [ -f "${REGISTRY_FILE}" ]; then
     CONSUMER_LIST='["manager"'
-    WORKER_NAMES=$(jq -r 'keys[]' "${REGISTRY_FILE}" 2>/dev/null || true)
+    WORKER_NAMES=$(jq -r '.workers | keys[]' "${REGISTRY_FILE}" 2>/dev/null || true)
     for wname in ${WORKER_NAMES}; do
         CONSUMER_LIST="${CONSUMER_LIST},\"worker-${wname}\""
     done
@@ -294,12 +322,18 @@ if [ -f "${REGISTRY_FILE}" ]; then
 
     for wname in ${WORKER_NAMES}; do
         MCPORTER_FILE="/root/hiclaw-fs/agents/${wname}/mcporter-servers.json"
+        # Read worker gateway key from persisted credentials
+        WORKER_CREDS="/data/worker-creds/${wname}.env"
+        WORKER_KEY=""
+        if [ -f "${WORKER_CREDS}" ]; then
+            WORKER_KEY=$(grep '^WORKER_GATEWAY_KEY=' "${WORKER_CREDS}" | sed 's/^WORKER_GATEWAY_KEY="//;s/"$//')
+        fi
+        if [ -z "${WORKER_KEY}" ]; then
+            log "  WARNING: No gateway key for ${wname} (creds file missing), skipping mcporter update"
+            continue
+        fi
         if [ -f "${MCPORTER_FILE}" ]; then
-            WORKER_KEY=$(jq -r --arg n "${wname}" '.[$n].gatewayKey // empty' "${REGISTRY_FILE}" 2>/dev/null)
-            if [ -z "${WORKER_KEY}" ]; then
-                log "  WARNING: No gateway key for ${wname}, skipping mcporter update"
-                continue
-            fi
+            # Update existing mcporter-servers.json
             UPDATED=$(jq --arg name "${MCP_SERVER_NAME}" --arg domain "${AI_GATEWAY_DOMAIN}" --arg key "${WORKER_KEY}" \
                 '.mcpServers[$name] = {
                     url: ("http://" + $domain + ":8080/mcp-servers/" + $name + "/mcp"),
@@ -313,7 +347,14 @@ if [ -f "${REGISTRY_FILE}" ]; then
                 log "  WARNING: Failed to update mcporter-servers.json for ${wname}"
             fi
         else
-            log "  No mcporter-servers.json for ${wname}, skipping"
+            # Create new mcporter-servers.json for worker
+            jq -n --arg name "${MCP_SERVER_NAME}" --arg domain "${AI_GATEWAY_DOMAIN}" --arg key "${WORKER_KEY}" \
+                '{mcpServers: {($name): {
+                    url: ("http://" + $domain + ":8080/mcp-servers/" + $name + "/mcp"),
+                    transport: "http",
+                    headers: {Authorization: ("Bearer " + $key)}
+                }}}' > "${MCPORTER_FILE}"
+            log "  Created mcporter-servers.json for ${wname}"
         fi
     done
 else
